@@ -3717,6 +3717,249 @@ function Compkiller:_LoadDropdown(BaseParent: TextButton , Callback: () -> any)
 	return Args;
 end;
 
+-- Image Dropdown backend ─────────────────────────────────────────────────────
+function Compkiller:_LoadImageDropdown(BaseParent: TextButton, Callback: () -> any)
+	local Window      = Compkiller:_GetWindowFromElement(BaseParent);
+	local BaseZ_Index = BaseParent.ZIndex + (math.random(1,15) * 100);
+
+	local DropdownWindow = Instance.new("Frame");
+	local UIStroke       = Instance.new("UIStroke");
+	local UICorner       = Instance.new("UICorner");
+	local ScrollingFrame = Instance.new("ScrollingFrame");
+	local UIListLayout   = Instance.new("UIListLayout");
+	local ToggleDb       = Compkiller.__SIGNAL(false);
+	local EventOut       = Compkiller.__SIGNAL(0);
+
+	DropdownWindow.Name                 = Compkiller:_RandomString();
+	DropdownWindow.Parent               = Window;
+	DropdownWindow.BackgroundColor3     = Compkiller.Colors.BlockBackground;
+	DropdownWindow.BorderColor3         = Color3.fromRGB(0,0,0);
+	DropdownWindow.BorderSizePixel      = 0;
+	DropdownWindow.Position             = UDim2.new(123,0,123,0);
+	DropdownWindow.Size                 = UDim2.new(0,190,0,200);
+	DropdownWindow.ZIndex               = BaseZ_Index;
+
+	table.insert(Compkiller.Elements.BlockBackground,{Element=DropdownWindow,Property="BackgroundColor3"});
+	Compkiller:_AddDragBlacklist(DropdownWindow);
+	Compkiller:_AddPropertyEvent(DropdownWindow, function(v) DropdownWindow.Visible = v; end);
+
+	UIStroke.Color  = Compkiller.Colors.HighStrokeColor;
+	UIStroke.Parent = DropdownWindow;
+	table.insert(Compkiller.Elements.HighStrokeColor,{Element=UIStroke,Property="Color"});
+
+	UICorner.CornerRadius = UDim.new(0,6);
+	UICorner.Parent       = DropdownWindow;
+
+	ScrollingFrame.Parent                 = DropdownWindow;
+	ScrollingFrame.Active                 = true;
+	ScrollingFrame.AnchorPoint            = Vector2.new(0.5,0.5);
+	ScrollingFrame.BackgroundTransparency = 1;
+	ScrollingFrame.BorderSizePixel        = 0;
+	ScrollingFrame.Position               = UDim2.new(0.5,0,0.5,0);
+	ScrollingFrame.Size                   = UDim2.new(1,-5,1,-5);
+	ScrollingFrame.ZIndex                 = BaseZ_Index + 5;
+	ScrollingFrame.BottomImage            = "";
+	ScrollingFrame.ScrollBarThickness     = 0;
+	ScrollingFrame.TopImage               = "";
+
+	UIListLayout.Parent              = ScrollingFrame;
+	UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center;
+	UIListLayout.SortOrder           = Enum.SortOrder.LayoutOrder;
+	UIListLayout.Padding             = UDim.new(0,4);
+
+	UIListLayout:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(function()
+		ScrollingFrame.CanvasSize = UDim2.fromOffset(
+			UIListLayout.AbsoluteContentSize.X,
+			UIListLayout.AbsoluteContentSize.Y
+		);
+	end);
+
+	local function ToggleUI(bool)
+		local IsSame = ToggleDb:GetValue() == bool;
+		EventOut:Fire(bool);
+		ToggleDb:Fire(bool);
+
+		local MUL          = Window.AbsoluteSize.Y / 2;
+		local MainPosition = UDim2.fromOffset(BaseParent.AbsolutePosition.X + 1, BaseParent.AbsolutePosition.Y + 80);
+		local DropPosition = UDim2.fromOffset(MainPosition.X.Offset, MainPosition.Y.Offset + 25);
+
+		if MainPosition.Y.Offset > MUL then
+			MainPosition = UDim2.fromOffset(BaseParent.AbsolutePosition.X + 1, BaseParent.AbsolutePosition.Y + 55);
+			DropPosition = UDim2.fromOffset(MainPosition.X.Offset, MainPosition.Y.Offset - 25);
+			DropdownWindow.AnchorPoint = Vector2.new(0,1);
+		else
+			DropdownWindow.AnchorPoint = Vector2.zero;
+		end;
+
+		local contentH = math.clamp(UIListLayout.AbsoluteContentSize.Y + 10, 10, 240);
+
+		if bool then
+			if not IsSame then DropdownWindow.Position = DropPosition; end;
+			Compkiller:_Animation(DropdownWindow, TweenInfo.new(0.2), {
+				BackgroundTransparency = 0,
+				Position = MainPosition,
+				Size = UDim2.new(0, BaseParent.AbsoluteSize.X - 1, 0, contentH)
+			});
+			Compkiller:_Animation(UIStroke, TweenInfo.new(0.2), {Transparency = 0});
+		else
+			Compkiller:_Animation(DropdownWindow, TweenInfo.new(0.2), {
+				BackgroundTransparency = 1,
+				Position = DropPosition,
+				Size = UDim2.new(0, BaseParent.AbsoluteSize.X - 1, 0, math.clamp(contentH / 1.5, 10, 240))
+			});
+			Compkiller:_Animation(UIStroke, TweenInfo.new(0.2), {Transparency = 1});
+		end;
+	end;
+
+	ToggleUI(false);
+
+	local Default  = nil;
+	local Values   = nil;
+	local __signals = {};
+
+	-- Draws one image row inside the scrolling list
+	local function DrawImageRow(item)
+		local ROW_H = 28;
+
+		local Row       = Instance.new("Frame");
+		local Thumb     = Instance.new("ImageLabel");
+		local Label     = Instance.new("TextLabel");
+		local Divider   = Instance.new("Frame");
+
+		Row.Name                 = Compkiller:_RandomString();
+		Row.BackgroundTransparency = 1;
+		Row.BorderSizePixel      = 0;
+		Row.Size                 = UDim2.new(1,-2,0,ROW_H);
+		Row.ZIndex               = BaseZ_Index + 6;
+
+		Thumb.Name                 = Compkiller:_RandomString();
+		Thumb.Parent               = Row;
+		Thumb.AnchorPoint          = Vector2.new(0,0.5);
+		Thumb.BackgroundTransparency = 1;
+		Thumb.BorderSizePixel      = 0;
+		Thumb.Position             = UDim2.new(0,4,0.5,0);
+		Thumb.Size                 = UDim2.new(0,20,0,20);
+		Thumb.ZIndex               = BaseZ_Index + 7;
+		Thumb.ScaleType            = Enum.ScaleType.Fit;
+		Thumb.Image                = item.image or "";
+		Thumb.ImageTransparency    = 0.5;
+
+		Label.Name                 = Compkiller:_RandomString();
+		Label.Parent               = Row;
+		Label.AnchorPoint          = Vector2.new(0,0.5);
+		Label.BackgroundTransparency = 1;
+		Label.BorderSizePixel      = 0;
+		Label.Position             = UDim2.new(0,30,0.5,0);
+		Label.Size                 = UDim2.new(1,-36,0,ROW_H);
+		Label.ZIndex               = BaseZ_Index + 7;
+		Label.Font                 = Enum.Font.GothamMedium;
+		Label.Text                 = tostring(item.name or "");
+		Label.TextColor3           = Compkiller.Colors.SwitchColor;
+		Label.TextSize             = 12;
+		Label.TextTransparency     = 0.5;
+		Label.TextXAlignment       = Enum.TextXAlignment.Left;
+		Label.TextTruncate         = Enum.TextTruncate.AtEnd;
+		table.insert(Compkiller.Elements.SwitchColor,{Element=Label,Property='TextColor3'});
+
+		Divider.Name                 = Compkiller:_RandomString();
+		Divider.Parent               = Row;
+		Divider.AnchorPoint          = Vector2.new(0.5,1);
+		Divider.BackgroundColor3     = Compkiller.Colors.LineColor;
+		Divider.BackgroundTransparency = 0.5;
+		Divider.BorderSizePixel      = 0;
+		Divider.Position             = UDim2.new(0.5,0,1,0);
+		Divider.Size                 = UDim2.new(1,-6,0,1);
+		Divider.ZIndex               = BaseZ_Index + 7;
+		table.insert(Compkiller.Elements.LineColor,{Element=Divider,Property="BackgroundColor3"});
+
+		return {Row=Row, Thumb=Thumb, Label=Label, Divider=Divider};
+	end;
+
+	local function ClearDropdown()
+		for _,v in next, ScrollingFrame:GetChildren() do
+			if v:IsA('Frame') then v:Destroy(); end;
+		end;
+		for _,v in next, __signals do v:Disconnect(); end;
+		table.clear(__signals);
+	end;
+
+	local function IsDefault(item)
+		if not Default then return false; end;
+		if typeof(Default) == 'table' then
+			return Default.name == item.name;
+		end;
+		return false;
+	end;
+
+	local function UpdateDropdown()
+		if not Values then return; end;
+
+		for _, item in next, Values do
+			local row = DrawImageRow(item);
+			row.Row.Parent = ScrollingFrame;
+
+			-- highlight selected
+			table.insert(__signals, ToggleDb:Connect(function(bool)
+				local isSelected = IsDefault(item);
+				local targetT    = (isSelected and 0) or 0.5;
+				if bool then
+					Compkiller:_Animation(row.Label, TweenInfo.new(0.2), {TextTransparency = targetT});
+					Compkiller:_Animation(row.Thumb, TweenInfo.new(0.2), {ImageTransparency = targetT});
+					Compkiller:_Animation(row.Divider, TweenInfo.new(0.2), {BackgroundTransparency = 0});
+				else
+					Compkiller:_Animation(row.Label, TweenInfo.new(0.2), {TextTransparency = 1});
+					Compkiller:_Animation(row.Thumb, TweenInfo.new(0.2), {ImageTransparency = 1});
+					Compkiller:_Animation(row.Divider, TweenInfo.new(0.2), {BackgroundTransparency = 1});
+				end;
+			end));
+
+			if ToggleDb:GetValue() then
+				local isSelected = IsDefault(item);
+				row.Label.TextTransparency = isSelected and 0 or 0.5;
+				row.Thumb.ImageTransparency = isSelected and 0 or 0.5;
+			end;
+
+			-- click to select
+			Compkiller:_Input(row.Row, function()
+				Default = item;
+				ToggleUI(false);
+				Callback(item);
+			end);
+		end;
+	end;
+
+	BaseParent.MouseButton1Click:Connect(function()
+		ToggleUI(true);
+		if not ToggleDb:GetValue() then ToggleUI(false); end;
+	end);
+
+	Compkiller:_RegisterClickListener(function()
+		if not Compkiller:_IsMouseOverFrame(DropdownWindow) then
+			ToggleUI(false);
+		end;
+	end);
+
+	local Args = {};
+
+	function Args:SetDefault(v) Default = v; end;
+
+	function Args:SetData(Def, Val)
+		Default = Def;
+		Values  = Val;
+		ClearDropdown();
+		UpdateDropdown();
+	end;
+
+	function Args:Refresh()
+		ClearDropdown();
+		UpdateDropdown();
+	end;
+
+	Args.EventOut = EventOut;
+	return Args;
+end;
+-- ─────────────────────────────────────────────────────────────────────────────
+
 function Compkiller:_LoadElement(Parent: Frame , EnabledLine: boolean , Signal)
 	local Zindex = Parent.ZIndex + 1;
 	local Tween = TweenInfo.new(0.25,Enum.EasingStyle.Quint);
@@ -5112,6 +5355,218 @@ function Compkiller:_LoadElement(Parent: Frame , EnabledLine: boolean , Signal)
 
 		return Args;
 	end;
+
+	-- Image Dropdown ──────────────────────────────────────────────────────────
+	function Args:AddImageDropdown(Config)
+		Config = Compkiller.__CONFIG(Config, {
+			Name     = "Image Dropdown",
+			Default  = nil,
+			Values   = {},
+			Flag     = nil,
+			Callback = function() end,
+		});
+
+		local function SelectedName()
+			if not Config.Default then return ''; end;
+			return tostring(Config.Default.name or '');
+		end;
+
+		local function SelectedImage()
+			if not Config.Default then return ''; end;
+			return tostring(Config.Default.image or '');
+		end;
+
+		-- outer frame
+		local Dropdown     = Instance.new("Frame");
+		local BlockText    = Instance.new("TextLabel");
+		local BlockLine    = Instance.new("Frame");
+		local LinkValues   = Instance.new("Frame");
+		local LLLayout     = Instance.new("UIListLayout");
+		-- pill trigger
+		local ValueItems   = Instance.new("Frame");
+		local UIStroke     = Instance.new("UIStroke");
+		local UICorner     = Instance.new("UICorner");
+		local ThumbImg     = Instance.new("ImageLabel");
+		local ValueText    = Instance.new("TextLabel");
+		local ChevronBtn   = Instance.new("ImageButton");
+
+		Dropdown.Name                  = Compkiller:_RandomString();
+		Dropdown.Parent                = Parent;
+		Dropdown.BackgroundTransparency = 1;
+		Dropdown.BorderSizePixel       = 0;
+		Dropdown.Size                  = UDim2.new(1,-1,0,55);
+		Dropdown.ZIndex                = Zindex + 2;
+
+		BlockText.Name                 = Compkiller:_RandomString();
+		BlockText.Parent               = Dropdown;
+		BlockText.BackgroundTransparency = 1;
+		BlockText.BorderSizePixel      = 0;
+		BlockText.Position             = UDim2.new(0,12,0,1);
+		BlockText.Size                 = UDim2.new(1,-20,0,25);
+		BlockText.ZIndex               = Zindex + 3;
+		BlockText.Font                 = Enum.Font.GothamMedium;
+		BlockText.Text                 = Config.Name;
+		BlockText.TextColor3           = Compkiller.Colors.SwitchColor;
+		BlockText.TextSize             = 14;
+		BlockText.TextTransparency     = 0.1;
+		BlockText.TextXAlignment       = Enum.TextXAlignment.Left;
+		table.insert(Compkiller.Elements.SwitchColor,{Element=BlockText,Property='TextColor3'});
+
+		if not BlockText.Text:byte() then
+			Dropdown.Size = UDim2.new(1,-1,0,25);
+		end;
+
+		BlockLine.Name                 = Compkiller:_RandomString();
+		BlockLine.Parent               = Dropdown;
+		BlockLine.AnchorPoint          = Vector2.new(0.5,1);
+		BlockLine.BackgroundColor3     = Compkiller.Colors.LineColor;
+		BlockLine.BackgroundTransparency = 0.5;
+		BlockLine.BorderSizePixel      = 0;
+		BlockLine.Position             = UDim2.new(0.5,0,1,0);
+		BlockLine.Size                 = UDim2.new(1,-26,0,1);
+		BlockLine.ZIndex               = Zindex + 3;
+		table.insert(Compkiller.Elements.LineColor,{Element=BlockLine,Property="BackgroundColor3"});
+
+		LinkValues.Name               = Compkiller:_RandomString();
+		LinkValues.Parent             = Dropdown;
+		LinkValues.AnchorPoint        = Vector2.new(1,0.54);
+		LinkValues.BackgroundTransparency = 1;
+		LinkValues.BorderSizePixel    = 0;
+		LinkValues.Position           = UDim2.new(1,-12,0,15);
+		LinkValues.Size               = UDim2.new(1,0,0,18);
+		LinkValues.ZIndex             = Zindex + 3;
+		LLLayout.Parent              = LinkValues;
+		LLLayout.FillDirection       = Enum.FillDirection.Horizontal;
+		LLLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right;
+		LLLayout.SortOrder           = Enum.SortOrder.LayoutOrder;
+		LLLayout.VerticalAlignment   = Enum.VerticalAlignment.Center;
+		LLLayout.Padding             = UDim.new(0,8);
+
+		ValueItems.Name               = Compkiller:_RandomString();
+		ValueItems.Parent             = Dropdown;
+		ValueItems.AnchorPoint        = Vector2.new(0.5,1);
+		ValueItems.BackgroundColor3   = Compkiller.Colors.DropColor;
+		ValueItems.BorderSizePixel    = 0;
+		ValueItems.ClipsDescendants   = true;
+		ValueItems.Position           = UDim2.new(0.5,0,1,-7);
+		ValueItems.Size               = UDim2.new(1,-25,0,20);
+		ValueItems.ZIndex             = Zindex + 5;
+		table.insert(Compkiller.Elements.DropColor,{Element=ValueItems,Property="BackgroundColor3"});
+
+		UIStroke.Color  = Compkiller.Colors.StrokeColor;
+		UIStroke.Parent = ValueItems;
+		table.insert(Compkiller.Elements.StrokeColor,{Element=UIStroke,Property="Color"});
+
+		UICorner.CornerRadius = UDim.new(0,3);
+		UICorner.Parent       = ValueItems;
+
+		ThumbImg.Name                  = Compkiller:_RandomString();
+		ThumbImg.Parent                = ValueItems;
+		ThumbImg.AnchorPoint           = Vector2.new(0,0.5);
+		ThumbImg.BackgroundTransparency = 1;
+		ThumbImg.BorderSizePixel       = 0;
+		ThumbImg.Position              = UDim2.new(0,4,0.5,0);
+		ThumbImg.Size                  = UDim2.new(0,13,0,13);
+		ThumbImg.ZIndex                = Zindex + 8;
+		ThumbImg.ScaleType             = Enum.ScaleType.Fit;
+		ThumbImg.Image                 = SelectedImage();
+
+		ValueText.Name                 = Compkiller:_RandomString();
+		ValueText.Parent               = ValueItems;
+		ValueText.AnchorPoint          = Vector2.new(0,0.5);
+		ValueText.BackgroundTransparency = 1;
+		ValueText.BorderSizePixel      = 0;
+		ValueText.Position             = UDim2.new(0,21,0.5,0);
+		ValueText.Size                 = UDim2.new(1,-38,0,13);
+		ValueText.ZIndex               = Zindex + 8;
+		ValueText.Font                 = Enum.Font.Gotham;
+		ValueText.Text                 = SelectedName();
+		ValueText.TextColor3           = Compkiller.Colors.SwitchColor;
+		ValueText.TextSize             = 11;
+		ValueText.TextXAlignment       = Enum.TextXAlignment.Left;
+		ValueText.TextTruncate         = Enum.TextTruncate.AtEnd;
+		table.insert(Compkiller.Elements.SwitchColor,{Element=ValueText,Property='TextColor3'});
+
+		ChevronBtn.Name                = Compkiller:_RandomString();
+		ChevronBtn.Parent              = ValueItems;
+		ChevronBtn.AnchorPoint         = Vector2.new(1,0.5);
+		ChevronBtn.BackgroundTransparency = 1;
+		ChevronBtn.BorderSizePixel     = 0;
+		ChevronBtn.Position            = UDim2.new(1,-4,0.5,0);
+		ChevronBtn.Size                = UDim2.new(0,13,0,13);
+		ChevronBtn.ZIndex              = Zindex + 5;
+		ChevronBtn.Image               = "rbxassetid://10709790948";
+
+		Compkiller:_Hover(ValueItems, function()
+			Compkiller:_Animation(ValueItems, TweenInfo.new(0.3), {BackgroundColor3 = Compkiller.Colors.MouseEnter});
+		end, function()
+			Compkiller:_Animation(ValueItems, TweenInfo.new(0.3), {BackgroundColor3 = Compkiller.Colors.DropColor});
+		end);
+
+		local Button = Compkiller:_Input(ValueItems);
+
+		local repi = Compkiller:_LoadImageDropdown(Button, function(item)
+			Config.Default = item;
+			ThumbImg.Image = SelectedImage();
+			ValueText.Text = SelectedName();
+			Config.Callback(item);
+		end);
+
+		repi.EventOut:Connect(function(v)
+			if v then
+				Compkiller:_Animation(ChevronBtn, TweenInfo.new(0.2), {Rotation = -180});
+			else
+				Compkiller:_Animation(ChevronBtn, TweenInfo.new(0.2), {Rotation = 0});
+			end;
+		end);
+
+		repi:SetData(Config.Default, Config.Values);
+
+		local iArgs = {};
+		iArgs.Flag  = Config.Flag;
+
+		function iArgs:SetValue(item)
+			Config.Default = item;
+			ThumbImg.Image = SelectedImage();
+			ValueText.Text = SelectedName();
+			repi:SetData(Config.Default, Config.Values);
+			Config.Callback(item);
+		end;
+
+		function iArgs:SetValues(v)
+			Config.Values = v;
+			repi:SetData(Config.Default, Config.Values);
+		end;
+
+		function iArgs:GetValue()
+			return Config.Default;
+		end;
+
+		iArgs.Signal = Signal:Connect(function(bool)
+			local t = bool and 0.1 or 1;
+			Compkiller:_Animation(BlockText,  TweenInfo.new(0.2), {TextTransparency      = t});
+			Compkiller:_Animation(BlockLine,  TweenInfo.new(0.2), {BackgroundTransparency = t});
+			Compkiller:_Animation(ValueItems, TweenInfo.new(0.2), {BackgroundTransparency = bool and 0 or 1});
+			Compkiller:_Animation(UIStroke,   TweenInfo.new(0.2), {Transparency           = bool and 0 or 1});
+			Compkiller:_Animation(ValueText,  TweenInfo.new(0.2), {TextTransparency       = bool and 0 or 1});
+			Compkiller:_Animation(ThumbImg,   TweenInfo.new(0.2), {ImageTransparency      = bool and 0 or 1});
+			Compkiller:_Animation(ChevronBtn, TweenInfo.new(0.2), {ImageTransparency      = bool and 0 or 1});
+		end);
+
+		iArgs.Link = Compkiller:_LoadOption({
+			AddLink = function(self, Name, Default)
+				return Compkiller:_AddLinkValue(Name, Default, LinkValues, LinkValues, {Tween=TweenInfo.new(0.2)}, Signal);
+			end,
+			Root = Dropdown
+		});
+
+		if Config.Flag then
+			Compkiller.Flags[Config.Flag] = iArgs;
+		end;
+
+		return iArgs;
+	end;
+	-- ─────────────────────────────────────────────────────────────────────────
 
 	-- Compatibility wrappers on section level
 	function Args:Toggle(elementName, options, callback)
