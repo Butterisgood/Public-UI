@@ -6046,7 +6046,7 @@ function Compkiller.new(Config : Window)
 		TabNameLabel.BorderColor3 = Color3.fromRGB(0, 0, 0)
 		TabNameLabel.BorderSizePixel = 0
 		TabNameLabel.Position = UDim2.new(0, 43, 0.5, 0)
-		TabNameLabel.Size = UDim2.new(1, -50, 0, 25)
+		TabNameLabel.Size = UDim2.new(0, 200, 0, 25)
 		TabNameLabel.ZIndex = 3
 		TabNameLabel.Font = Enum.Font.GothamMedium
 		TabNameLabel.Text = TabConfig.Name;
@@ -6244,7 +6244,7 @@ function Compkiller.new(Config : Window)
 				});
 
 				Compkiller:_Animation(TabNameLabel,Tween,{
-					Size = UDim2.new(1, -50, 0, 25),
+					Size = UDim2.new(0, 200, 0, 25),
 					Position = UDim2.new(0, 80, 0.5, 0)
 				});
 
