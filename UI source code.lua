@@ -1410,6 +1410,46 @@ function Compkiller:_IsMouseOverFrame(Frame : Frame) : boolean
 	end;
 end;
 
+-- ── Shared input dispatchers ────────────────────────────────────────────────
+-- Instead of each dropdown / keybind / color-picker creating its own permanent
+-- UserInputService.InputBegan or .InputChanged connection (which all fire in
+-- parallel on every click and cause frame spikes), everything registers a
+-- lightweight callback here.  There is exactly ONE global connection each.
+Compkiller._ClickListeners        = {};
+Compkiller._InputChangedListeners = {};
+
+UserInputService.InputBegan:Connect(function(Input)
+	if Input.UserInputType == Enum.UserInputType.MouseButton1
+		or Input.UserInputType == Enum.UserInputType.Touch then
+		for _, fn in next, Compkiller._ClickListeners do
+			if fn then fn(Input) end;
+		end;
+	end;
+end);
+
+UserInputService.InputChanged:Connect(function(Input)
+	for _, fn in next, Compkiller._InputChangedListeners do
+		if fn then fn(Input) end;
+	end;
+end);
+
+function Compkiller:_RegisterClickListener(fn)
+	local key = tostring({});
+	Compkiller._ClickListeners[key] = fn;
+	return function()
+		Compkiller._ClickListeners[key] = nil;
+	end;
+end;
+
+function Compkiller:_RegisterInputChangedListener(fn)
+	local key = tostring({});
+	Compkiller._InputChangedListeners[key] = fn;
+	return function()
+		Compkiller._InputChangedListeners[key] = nil;
+	end;
+end;
+-- ────────────────────────────────────────────────────────────────────────────
+
 function Compkiller:_Rounding(num: number, numDecimalPlaces: number) : number
 	local mult: number = 10 ^ (numDecimalPlaces or 0);
 	return math.floor(num * mult + 0.5) / mult;
@@ -1582,10 +1622,10 @@ function Compkiller:_AddDragBlacklist(Frame: Frame)
 		SET_BLACKLIST(false);
 	end);
 
-	UserInputService.InputChanged:Connect(function()
+	Compkiller:_RegisterInputChangedListener(function()
 		if not Compkiller:_IsMouseOverFrame(Frame) then
 			SET_BLACKLIST(false);
-		end
+		end;
 	end);
 end;
 
@@ -1689,7 +1729,7 @@ function Compkiller:Drag(InputFrame: Frame, MoveFrame: Frame, Speed : number)
 		Compkiller.IaDrag = dragToggle;
 	end)
 
-	UserInputService.InputChanged:Connect(function(input)
+	Compkiller:_RegisterInputChangedListener(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch and #Compkiller.DragBlacklist <= 0 then
 			if dragToggle then
 				Compkiller.IS_DRAG_MOVE = true;
@@ -2887,13 +2927,11 @@ function Compkiller:_AddColorPickerPanel(Button: ImageButton , Callback: (Color:
 		end;
 	end)
 
-	UserInputService.InputBegan:Connect(function(Input)
-		if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-			if not Compkiller:_IsMouseOverFrame(ColorPickerWindow) then
-				ToggleUI(false);
-			end;
+	Compkiller:_RegisterClickListener(function(Input)
+		if not Compkiller:_IsMouseOverFrame(ColorPickerWindow) then
+			ToggleUI(false);
 		end;
-	end)
+	end);
 
 	ColorRedGreenBlue.InputBegan:Connect(function(Input)
 		if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
@@ -3331,13 +3369,11 @@ function Compkiller:_LoadOption(Value , TabSignal)
 			ToggleUI(true);
 		end);
 
-		UserInputService.InputBegan:Connect(function(Input)
-			if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-				if Toggl and not Compkiller:_IsMouseOverFrame(ExtractElement) and not Compkiller:_IsMouseOverFrame(Element) then
-					ToggleUI(false);
-				end;
-			end
-		end)		
+		Compkiller:_RegisterClickListener(function(Input)
+			if Toggl and not Compkiller:_IsMouseOverFrame(ExtractElement) and not Compkiller:_IsMouseOverFrame(Element) then
+				ToggleUI(false);
+			end;
+		end);
 
 		return Compkiller:_LoadElement(Elements , true , Signal)
 	end;
@@ -3641,11 +3677,9 @@ function Compkiller:_LoadDropdown(BaseParent: TextButton , Callback: () -> any)
 		end
 	end);
 
-	UserInputService.InputBegan:Connect(function(Input)
-		if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-			if not Compkiller:_IsMouseOverFrame(DropdownWindow) then
-				ToggleUI(false);
-			end;
+	Compkiller:_RegisterClickListener(function(Input)
+		if not Compkiller:_IsMouseOverFrame(DropdownWindow) then
+			ToggleUI(false);
 		end;
 	end);
 
