@@ -5515,6 +5515,12 @@ function Compkiller.new(Config : Window)
 		WindowArgs.AlwayShowTab = true;
 	end;
 
+	for _, child in ipairs(CoreGui:GetChildren()) do
+		if child:IsA("ScreenGui") and string.find(child.Name, "compkiller") then
+			pcall(function() child:Destroy() end)
+		end
+	end
+
 	local CompKiller = Instance.new("ScreenGui")
 	local MainFrame = Instance.new("Frame")
 	local UICorner = Instance.new("UICorner")
@@ -6040,13 +6046,18 @@ function Compkiller.new(Config : Window)
 		TabNameLabel.BorderColor3 = Color3.fromRGB(0, 0, 0)
 		TabNameLabel.BorderSizePixel = 0
 		TabNameLabel.Position = UDim2.new(0, 43, 0.5, 0)
-		TabNameLabel.Size = UDim2.new(0, 200, 0, 25)
+		TabNameLabel.Size = UDim2.new(1, -50, 0, 25)
 		TabNameLabel.ZIndex = 3
 		TabNameLabel.Font = Enum.Font.GothamMedium
 		TabNameLabel.Text = TabConfig.Name;
 		TabNameLabel.TextColor3 = Compkiller.Colors.SwitchColor
 		TabNameLabel.TextSize = 15.000
 		TabNameLabel.TextXAlignment = Enum.TextXAlignment.Left
+		TabNameLabel.TextScaled = true
+
+		local TabNameLabelConstraint = Instance.new("UITextSizeConstraint")
+		TabNameLabelConstraint.MaxTextSize = 15
+		TabNameLabelConstraint.Parent = TabNameLabel
 
 		table.insert(Compkiller.Elements.SwitchColor , {
 			Element = TabNameLabel,
@@ -6206,7 +6217,7 @@ function Compkiller.new(Config : Window)
 				});
 
 				Compkiller:_Animation(TabNameLabel,Tween,{
-					Size = UDim2.new(0, 200, 0, 25),
+					Size = UDim2.new(1, -50, 0, 25),
 					Position = UDim2.new(0, 43, 0.5, 0)
 				});
 
@@ -6233,7 +6244,7 @@ function Compkiller.new(Config : Window)
 				});
 
 				Compkiller:_Animation(TabNameLabel,Tween,{
-					Size = UDim2.new(0, 200, 0, 25),
+					Size = UDim2.new(1, -50, 0, 25),
 					Position = UDim2.new(0, 80, 0.5, 0)
 				});
 
@@ -9476,7 +9487,7 @@ end;
 -- ==========================================
 local Players = game:GetService("Players")
 
-function Compkiller:CreateWindow(name)
+function Compkiller:CreateWindow(name, isMulti)
 	-- Automatically initialize the main window if it hasn't been initialized yet
 	if not Compkiller._MainWindow then
 		Compkiller._MainWindow = Compkiller.new({
@@ -9489,7 +9500,7 @@ function Compkiller:CreateWindow(name)
 		Compkiller._MainWindowCategory = Compkiller._MainWindow:DrawCategory({ Name = "Main" })
 	end
 
-	-- Map window to a Tab in the new layout
+	-- Determine Icon
 	local icon = "apple"
 	local lowerName = string.lower(name or "")
 	if string.find(lowerName, "builder") then
@@ -9500,82 +9511,71 @@ function Compkiller:CreateWindow(name)
 		icon = "target"
 	end
 
-	local tab = Compkiller._MainWindow:DrawTab({
-		Name = name or "Tab",
-		Icon = icon,
-		Type = "Single",
-		EnableScrolling = true
-	})
+	local function createWindowWrapper(tabObj, tabName)
+		local windowWrapper = {
+			Tab = tabObj,
+			CurrentSection = nil,
+			Name = tabName
+		}
 
-	local windowWrapper = {
-		Tab = tab,
-		CurrentSection = nil
-	}
+		local function ensureSection(wrapper)
+			if not wrapper.CurrentSection then
+				wrapper.CurrentSection = wrapper.Tab:DrawSection({
+					Name = "Controls",
+					Position = "left"
+				})
+			end
+			return wrapper.CurrentSection
+		end
 
-	local function ensureSection(wrapper)
-		if not wrapper.CurrentSection then
-			wrapper.CurrentSection = wrapper.Tab:DrawSection({
-				Name = "Controls",
+		function windowWrapper:Section(sectionName, defaultExpanded)
+			self.CurrentSection = self.Tab:DrawSection({
+				Name = sectionName,
 				Position = "left"
 			})
+			return self.CurrentSection
 		end
-		return wrapper.CurrentSection
+
+		function windowWrapper:Toggle(...) local section = ensureSection(self) return section:Toggle(...) end
+		function windowWrapper:Slider(...) local section = ensureSection(self) return section:Slider(...) end
+		function windowWrapper:Dropdown(...) local section = ensureSection(self) return section:Dropdown(...) end
+		function windowWrapper:ImageDropdown(...) local section = ensureSection(self) return section:ImageDropdown(...) end
+		function windowWrapper:Box(...) local section = ensureSection(self) return section:Box(...) end
+		function windowWrapper:Bind(...) local section = ensureSection(self) return section:Bind(...) end
+		function windowWrapper:Button(...) local section = ensureSection(self) return section:Button(...) end
+		function windowWrapper:Search(...) local section = ensureSection(self) return section:Search(...) end
+		function windowWrapper:String(...) local section = ensureSection(self) return section:String(...) end
+
+		return windowWrapper
 	end
 
-	function windowWrapper:Section(sectionName, defaultExpanded)
-		self.CurrentSection = self.Tab:DrawSection({
-			Name = sectionName,
-			Position = "left"
+	if isMulti then
+		local containerTab = Compkiller._MainWindow:DrawContainerTab({
+			Name = name or "Tab",
+			Icon = icon
 		})
-		return self.CurrentSection
-	end
 
-	function windowWrapper:Toggle(elementName, options, callback)
-		local section = ensureSection(self)
-		return section:Toggle(elementName, options, callback)
-	end
+		local containerWrapper = {}
+		function containerWrapper:Window(subTabName)
+			local subTab = containerTab:DrawTab({
+				Name = subTabName,
+				Type = "Single",
+				EnableScrolling = true
+			})
+			return createWindowWrapper(subTab, subTabName)
+		end
 
-	function windowWrapper:Slider(elementName, options, callback)
-		local section = ensureSection(self)
-		return section:Slider(elementName, options, callback)
-	end
+		return containerWrapper
+	else
+		local tab = Compkiller._MainWindow:DrawTab({
+			Name = name or "Tab",
+			Icon = icon,
+			Type = "Single",
+			EnableScrolling = true
+		})
 
-	function windowWrapper:Dropdown(elementName, options, callback)
-		local section = ensureSection(self)
-		return section:Dropdown(elementName, options, callback)
+		return createWindowWrapper(tab, name)
 	end
-
-	function windowWrapper:ImageDropdown(elementName, options, callback)
-		local section = ensureSection(self)
-		return section:ImageDropdown(elementName, options, callback)
-	end
-
-	function windowWrapper:Box(elementName, options, callback)
-		local section = ensureSection(self)
-		return section:Box(elementName, options, callback)
-	end
-
-	function windowWrapper:Bind(elementName, options, callback)
-		local section = ensureSection(self)
-		return section:Bind(elementName, options, callback)
-	end
-
-	function windowWrapper:Button(elementName, callback)
-		local section = ensureSection(self)
-		return section:Button(elementName, callback)
-	end
-
-	function windowWrapper:Search(...)
-		local section = ensureSection(self)
-		return section:Search(...)
-	end
-
-	function windowWrapper:String(options)
-		local section = ensureSection(self)
-		return section:String(options)
-	end
-
-	return windowWrapper
 end
 
 return Compkiller;
