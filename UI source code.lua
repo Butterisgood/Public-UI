@@ -4801,11 +4801,6 @@ if Config.Model then
     Clone.Parent = WorldModel
     
     Camera.CFrame = CFrame.lookAt(Vector3.new(5,5,5), Vector3.new(0,0,0))
-    local light = Instance.new("Light", WorldModel)
-light.Enabled = true
-light.Brightness = 2
-light.Shadows = true
-light.Color = Color3.fromRGB(255, 255, 255)
     
     -- IMPORTANT: Increase the paragraph padding so it doesn't get cut off
     Paragraph.Size = UDim2.new(1, -1, 0, 50) 
