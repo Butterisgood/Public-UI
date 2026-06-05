@@ -4975,6 +4975,10 @@ Args.Signal = Signal:Connect(function(bool)
 	end;
 end);
 
+Args.Root = Paragraph  -- Expose the root frame
+Args.TitleLabel = BlockText  -- Expose the title label
+Args.ContentLabel = DescriptionText  -- Expose the content label
+
 return Args;
 	end;
 
