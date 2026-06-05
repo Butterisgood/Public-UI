@@ -1411,27 +1411,68 @@ function Compkiller:_IsMouseOverFrame(Frame : Frame) : boolean
 end;
 
 -- ── Shared input dispatchers ────────────────────────────────────────────────
--- Instead of each dropdown / keybind / color-picker creating its own permanent
--- UserInputService.InputBegan or .InputChanged connection (which all fire in
--- parallel on every click and cause frame spikes), everything registers a
--- lightweight callback here.  There is exactly ONE global connection each.
-Compkiller._ClickListeners        = {};
-Compkiller._InputChangedListeners = {};
+-- Persist across re-executions so loadstring() does not stack global connections.
+local __ButterUI = getgenv().__ButterUI
+if not __ButterUI then
+	__ButterUI = {
+		ClickListeners = {},
+		InputChangedListeners = {},
+		KeybindHandlers = {},
+		WindowState = {},
+	}
+	getgenv().__ButterUI = __ButterUI
 
-UserInputService.InputBegan:Connect(function(Input)
-	if Input.UserInputType == Enum.UserInputType.MouseButton1
-		or Input.UserInputType == Enum.UserInputType.Touch then
-		for _, fn in next, Compkiller._ClickListeners do
-			if fn then fn(Input) end;
+	__ButterUI.MasterInputBegan = UserInputService.InputBegan:Connect(function(Input, gameProcessed)
+		if Input.UserInputType == Enum.UserInputType.MouseButton1
+			or Input.UserInputType == Enum.UserInputType.Touch then
+			for _, fn in next, __ButterUI.ClickListeners do
+				if fn then pcall(fn, Input) end;
+			end;
+		end;
+
+		for _, handler in next, __ButterUI.KeybindHandlers do
+			if handler then pcall(handler, Input, gameProcessed) end;
+		end;
+	end);
+
+	__ButterUI.MasterInputChanged = UserInputService.InputChanged:Connect(function(Input)
+		if Input.UserInputType ~= Enum.UserInputType.MouseMovement
+			and Input.UserInputType ~= Enum.UserInputType.Touch then
+			return;
+		end;
+
+		for _, fn in next, __ButterUI.InputChangedListeners do
+			if fn then pcall(fn, Input) end;
+		end;
+	end);
+end;
+
+Compkiller._ClickListeners = __ButterUI.ClickListeners;
+Compkiller._InputChangedListeners = __ButterUI.InputChangedListeners;
+
+function Compkiller:_CleanupPreviousWindows()
+	for _, state in next, __ButterUI.WindowState do
+		if state.LoopThread then pcall(task.cancel, state.LoopThread) end;
+		if state.MobileThread then pcall(task.cancel, state.MobileThread) end;
+
+		for _, thread in next, state.Threads or {} do
+			if type(thread) == "thread" then
+				pcall(task.cancel, thread);
+			end;
 		end;
 	end;
-end);
 
-UserInputService.InputChanged:Connect(function(Input)
-	for _, fn in next, Compkiller._InputChangedListeners do
-		if fn then fn(Input) end;
+	table.clear(__ButterUI.WindowState);
+	table.clear(__ButterUI.ClickListeners);
+	table.clear(__ButterUI.InputChangedListeners);
+	table.clear(__ButterUI.KeybindHandlers);
+	Compkiller.Windows = {};
+	Compkiller.Flags = {};
+
+	for _, bucket in next, Compkiller.Elements do
+		table.clear(bucket);
 	end;
-end);
+end;
 
 function Compkiller:_RegisterClickListener(fn)
 	local key = tostring({});
@@ -1447,6 +1488,18 @@ function Compkiller:_RegisterInputChangedListener(fn)
 	return function()
 		Compkiller._InputChangedListeners[key] = nil;
 	end;
+end;
+
+function Compkiller:_RegisterKeybindHandler(fn)
+	local key = tostring({});
+	__ButterUI.KeybindHandlers[key] = fn;
+	return function()
+		__ButterUI.KeybindHandlers[key] = nil;
+	end;
+end;
+
+function Compkiller:_TrackWindowState(id, state)
+	__ButterUI.WindowState[id] = state;
 end;
 -- ────────────────────────────────────────────────────────────────────────────
 
@@ -1571,7 +1624,7 @@ function Compkiller:_Blur(element : Frame , WindowRemote) : RBXScriptSignal
 	end;
 
 	local rbxsignal = CurrentCamera:GetPropertyChangedSignal('CFrame'):Connect(UpdateFunction)
-	local loopThread = UserInputService.InputChanged:Connect(function(Input)
+	local unregisterInput = Compkiller:_RegisterInputChangedListener(function(Input)
 		if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.MouseMovement or Input.UserInputType == Enum.UserInputType.Touch then
 			pcall(UpdateFunction);
 		end;
@@ -1585,7 +1638,7 @@ function Compkiller:_Blur(element : Frame , WindowRemote) : RBXScriptSignal
 
 	element.Destroying:Connect(function()
 		rbxsignal:Disconnect();
-		loopThread:Disconnect();
+		unregisterInput();
 		task.cancel(THREAD);
 		Part:Destroy();
 		DepthOfField:Destroy();
@@ -1622,7 +1675,12 @@ function Compkiller:_AddDragBlacklist(Frame: Frame)
 		SET_BLACKLIST(false);
 	end);
 
-	Compkiller:_RegisterInputChangedListener(function()
+	Compkiller:_RegisterInputChangedListener(function(input)
+		if input.UserInputType ~= Enum.UserInputType.MouseMovement
+			and input.UserInputType ~= Enum.UserInputType.Touch then
+			return;
+		end;
+
 		if not Compkiller:_IsMouseOverFrame(Frame) then
 			SET_BLACKLIST(false);
 		end;
@@ -1730,18 +1788,23 @@ function Compkiller:Drag(InputFrame: Frame, MoveFrame: Frame, Speed : number)
 	end)
 
 	Compkiller:_RegisterInputChangedListener(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch and #Compkiller.DragBlacklist <= 0 then
-			if dragToggle then
-				Compkiller.IS_DRAG_MOVE = true;
-				updateInput(input)
-			else
-				Compkiller.IS_DRAG_MOVE = false;
-			end
+		if input.UserInputType ~= Enum.UserInputType.MouseMovement
+			and input.UserInputType ~= Enum.UserInputType.Touch then
+			return;
+		end;
+
+		if #Compkiller.DragBlacklist > 0 then
+			dragToggle = false
+			Compkiller.IS_DRAG_MOVE = false;
+			Compkiller.IaDrag = dragToggle;
+			return;
+		end;
+
+		if dragToggle then
+			Compkiller.IS_DRAG_MOVE = true;
+			updateInput(input)
 		else
-			if #Compkiller.DragBlacklist > 0 then
-				dragToggle = false
-				Compkiller.IS_DRAG_MOVE = false;
-			end
+			Compkiller.IS_DRAG_MOVE = false;
 		end
 
 		Compkiller.IaDrag = dragToggle;
@@ -2905,12 +2968,9 @@ function Compkiller:_AddColorPickerPanel(Button: ImageButton , Callback: (Color:
 			end;
 
 			SPAWN_THREAD = task.spawn(function()
-				while true do task.wait(0.00001)
-					if not Args.IsHold then
-						break;	
-					end;
-
+				while Args.IsHold do
 					Callback(Color3.fromHSV(H , S , V),Transparency);
+					task.wait(0.03);
 				end;
 			end);
 		end;
@@ -4564,18 +4624,20 @@ function Compkiller:_LoadElement(Parent: Frame , EnabledLine: boolean , Signal)
 				end
 			end)
 
-			UserInputService.InputChanged:Connect(function(Input)
-				if IsHold then
-					if (Input.UserInputType == Enum.UserInputType.MouseMovement or Input.UserInputType == Enum.UserInputType.Touch)  then
-						if UserInputService.TouchEnabled then
-							if not Compkiller:_IsMouseOverFrame(SliderBar) then
-								IsHold = false
-							else
-								Update(Input)
-							end;
+			Compkiller:_RegisterInputChangedListener(function(Input)
+				if not IsHold then
+					return;
+				end;
+
+				if Input.UserInputType == Enum.UserInputType.MouseMovement or Input.UserInputType == Enum.UserInputType.Touch then
+					if UserInputService.TouchEnabled then
+						if not Compkiller:_IsMouseOverFrame(SliderBar) then
+							IsHold = false
 						else
 							Update(Input)
 						end;
+					else
+						Update(Input)
 					end;
 				end;
 			end);
@@ -6003,6 +6065,8 @@ function Compkiller.new(Config : Window)
 	if Compkiller:_IsMobile() then
 		WindowArgs.AlwayShowTab = true;
 	end;
+
+	Compkiller:_CleanupPreviousWindows();
 
 	for _, child in ipairs(CoreGui:GetChildren()) do
 		if child:IsA("ScreenGui") and string.find(child.Name, "compkiller") then
@@ -9200,7 +9264,7 @@ function Compkiller.new(Config : Window)
 			end);
 		end;
 
-		table.insert(WindowArgs.THREADS,task.spawn(function()
+		local mobileThread = task.spawn(function()
 			while true do task.wait(0.15)
 				if Compkiller:_IsMobile() then
 					ToggleCloseUI(true);
@@ -9226,17 +9290,21 @@ function Compkiller.new(Config : Window)
 					end
 				end;
 			end
-		end));
+		end);
+
+		table.insert(WindowArgs.THREADS, mobileThread);
 
 		function WindowArgs:SetKeybind(key)
 			Config.Keybind = key
 		end;
 
-		UserInputService.InputBegan:Connect(function(Input,Typing)
+		local unregisterKeybind = Compkiller:_RegisterKeybindHandler(function(Input, Typing)
 			if not Typing and (Input.KeyCode == Config.Keybind or Input.KeyCode.Name == Config.Keybind) then
 				WindowArgs:_ToggleUI()
 			end;
 		end);
+
+		WindowArgs._UnregisterKeybind = unregisterKeybind;
 	end;
 
 	function WindowArgs:Update(config: WindowUpdate)
@@ -9298,7 +9366,7 @@ function Compkiller.new(Config : Window)
 			Property = "BackgroundColor3"
 		});
 
-		while true do task.wait(0.01);
+		while true do task.wait(0.05);
 			BlurElement.Size = UDim2.new(1, TabFrame.AbsoluteSize.X - 35, 1, 0);
 			MovementFrame.Size = UDim2.new(1, TabFrame.AbsoluteSize.X - 35, 1, 0);
 
@@ -9337,6 +9405,11 @@ function Compkiller.new(Config : Window)
 			end;
 		end;
 	end);
+
+	Compkiller:_TrackWindowState(Compkiller:_RandomString(), {
+		LoopThread = WindowArgs.LOOP_THREAD,
+		Threads = WindowArgs.THREADS,
+	});
 
 	WindowArgs:Update();
 
