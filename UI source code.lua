@@ -9228,6 +9228,10 @@ function Compkiller.new(Config : Window)
 			end
 		end));
 
+		function WindowArgs:SetKeybind(key)
+			Config.Keybind = key
+		end;
+
 		UserInputService.InputBegan:Connect(function(Input,Typing)
 			if not Typing and (Input.KeyCode == Config.Keybind or Input.KeyCode.Name == Config.Keybind) then
 				WindowArgs:_ToggleUI()
