@@ -3105,7 +3105,7 @@ function Compkiller:_LoadOption(Value , TabSignal)
 			local scale = TextService:GetTextSize(Helper.Text.Text,Helper.Text.TextSize,Helper.Text.Font,Vector2.new(math.huge,math.huge));
 
 			Compkiller:_Animation(Helper.Text , TweenInfo.new(0.15), {
-				Size = UDim2.fromOffset(scale.X + 50, scale.Y + 5)
+				Size = UDim2.fromOffset(scale.X + 10, scale.Y + 6)
 			})
 
 			return scale;
