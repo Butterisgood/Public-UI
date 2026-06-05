@@ -4885,58 +4885,97 @@ end
 
 		UpdateScale();
 
-		local Args = {};
+local Args = {};
 
-		function Args:SetTitle(title)
-			BlockText.Text = title;
-			UpdateScale();
-		end;
+function Args:SetTitle(title)
+	BlockText.Text = title;
+	UpdateScale();
+end;
 
-		function Args:SetContent(content)
-			DescriptionText.Text = content;
-			UpdateScale();
-		end;
+function Args:SetContent(content)
+	DescriptionText.Text = content;
+	UpdateScale();
+end;
 
-		function Args:SetImage(image)
-			if image then
-				if not BlockImage.Parent then
-					BlockImage.Parent = Paragraph
-				end
-				BlockImage.Image = image
-			else
-				BlockImage.Parent = nil
-			end
-		end;
+function Args:SetImage(image)
+	if image then
+		if not BlockImage.Parent then
+			BlockImage.Parent = Paragraph
+		end
+		BlockImage.Image = image
+	else
+		BlockImage.Parent = nil
+	end
+end;
 
-		Args.Signal = Signal:Connect(function(bool)
-			if bool then
-				Compkiller:_Animation(BlockText,TweenInfo.new(0.2),{
-					TextTransparency = 0.300
-				});
+-- NEW: SetVisible method to independently control paragraph visibility
+function Args:SetVisible(visible)
+	if visible then
+		Compkiller:_Animation(BlockText, TweenInfo.new(0.2), {
+			TextTransparency = 0.300
+		});
+		Compkiller:_Animation(DescriptionText, TweenInfo.new(0.2), {
+			TextTransparency = 0.500
+		});
+		Compkiller:_Animation(BlockLine, TweenInfo.new(0.2), {
+			BackgroundTransparency = 0.500
+		});
+		if BlockViewport then
+			BlockViewport.BackgroundTransparency = 0
+			BlockViewport.Visible = true
+		end
+		if BlockImage then
+			BlockImage.ImageTransparency = 0
+		end
+	else
+		Compkiller:_Animation(BlockText, TweenInfo.new(0.2), {
+			TextTransparency = 1
+		});
+		Compkiller:_Animation(DescriptionText, TweenInfo.new(0.2), {
+			TextTransparency = 1
+		});
+		Compkiller:_Animation(BlockLine, TweenInfo.new(0.2), {
+			BackgroundTransparency = 1
+		});
+		if BlockViewport then
+			BlockViewport.BackgroundTransparency = 1
+			BlockViewport.Visible = false
+		end
+		if BlockImage then
+			BlockImage.ImageTransparency = 1
+		end
+	end
+end;
 
-				Compkiller:_Animation(DescriptionText,TweenInfo.new(0.2),{
-					TextTransparency = 0.500
-				});
+Args.Signal = Signal:Connect(function(bool)
+	if bool then
+		Compkiller:_Animation(BlockText,TweenInfo.new(0.2),{
+			TextTransparency = 0.300
+		});
 
-				Compkiller:_Animation(BlockLine,TweenInfo.new(0.2),{
-					BackgroundTransparency = 0.500
-				});
-			else
-				Compkiller:_Animation(BlockText,TweenInfo.new(0.2),{
-					TextTransparency = 1
-				});
+		Compkiller:_Animation(DescriptionText,TweenInfo.new(0.2),{
+			TextTransparency = 0.500
+		});
 
-				Compkiller:_Animation(DescriptionText,TweenInfo.new(0.2),{
-					TextTransparency = 1
-				});
+		Compkiller:_Animation(BlockLine,TweenInfo.new(0.2),{
+			BackgroundTransparency = 0.500
+		});
+	else
+		Compkiller:_Animation(BlockText,TweenInfo.new(0.2),{
+			TextTransparency = 1
+		});
 
-				Compkiller:_Animation(BlockLine,TweenInfo.new(0.2),{
-					BackgroundTransparency = 1
-				});
-			end;
-		end);
+		Compkiller:_Animation(DescriptionText,TweenInfo.new(0.2),{
+			TextTransparency = 1
+		});
 
-		return Args;
+		Compkiller:_Animation(BlockLine,TweenInfo.new(0.2),{
+			BackgroundTransparency = 1
+		});
+	end;
+end);
+
+return Args;
 	end;
 
 	function Args:AddTextBox(Config: TextBoxConfig)
