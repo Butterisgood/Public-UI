@@ -4865,27 +4865,51 @@ end
 
 		local Base = 15;
 
+		local HasViewport = Config.Model ~= nil
+
 		local UpdateScale = function()
 
+			local Height
+
 			if not DescriptionText.Text:byte() then
-				local TitleScale = TextService:GetTextSize(BlockText.Text,BlockText.TextSize,BlockText.Font,Vector2.new(math.huge,math.huge));
+				local TitleScale = TextService:GetTextSize(
+					BlockText.Text,
+					BlockText.TextSize,
+					BlockText.Font,
+					Vector2.new(math.huge, math.huge)
+				)
 
-				Compkiller:_Animation(Paragraph,TweenInfo.new(0.15),{
-					Size = UDim2.new(1, -1, 0, TitleScale.Y + Base)
-				});
+				Height = TitleScale.Y + Base
 			else
-				local TitleScale = TextService:GetTextSize(BlockText.Text,BlockText.TextSize,BlockText.Font,Vector2.new(math.huge,math.huge));
-				local ContentScale = TextService:GetTextSize(DescriptionText.Text,DescriptionText.TextSize,DescriptionText.Font,Vector2.new(math.huge,math.huge));
+				local TitleScale = TextService:GetTextSize(
+					BlockText.Text,
+					BlockText.TextSize,
+					BlockText.Font,
+					Vector2.new(math.huge, math.huge)
+				)
 
-				Compkiller:_Animation(Paragraph,TweenInfo.new(0.15),{
-					Size = UDim2.new(1, -1, 0, (TitleScale.Y + ContentScale.Y) + Base)
-				});
-			end;
+				local ContentScale = TextService:GetTextSize(
+					DescriptionText.Text,
+					DescriptionText.TextSize,
+					DescriptionText.Font,
+					Vector2.new(math.huge, math.huge)
+				)
+
+				Height = (TitleScale.Y + ContentScale.Y) + Base
+			end
+
+			if HasViewport then
+				Height = math.max(Height, 50)
+			end
+
+			Compkiller:_Animation(Paragraph, TweenInfo.new(0.15), {
+				Size = UDim2.new(1, -1, 0, Height)
+			})
 		end;
 
 		UpdateScale();
 
-local Args = {};
+		local Args = {};
 
 function Args:SetTitle(title)
 	BlockText.Text = title;
@@ -5064,7 +5088,7 @@ return Args;
 		TextBox_2.BackgroundTransparency = 1.000
 		TextBox_2.BorderColor3 = Color3.fromRGB(0, 0, 0)
 		TextBox_2.BorderSizePixel = 0
-		TextBox_2.ClipsDescendants = true
+		TextBox_2.ClipsDescendants = false -- apple here I got told to change this to false
 		TextBox_2.Position = UDim2.new(0.5, 0, 0.5, 0)
 		TextBox_2.Size = UDim2.new(1, -5, 1, 0)
 		TextBox_2.ZIndex = Zindex + 5
