@@ -4848,7 +4848,7 @@ end
 		DescriptionText.BorderColor3 = Color3.fromRGB(0, 0, 0)
 		DescriptionText.BorderSizePixel = 0
 		DescriptionText.Position = UDim2.new(0, 12, 0, 22)
-		DescriptionText.Size = UDim2.new(1, -20, 1, -25)
+		DescriptionText.Size = UDim2.new(1, -20, 0, 20)
 		DescriptionText.ZIndex = Zindex + 5
 		DescriptionText.Font = Enum.Font.GothamMedium
 		DescriptionText.Text = Config.Content
