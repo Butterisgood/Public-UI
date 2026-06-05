@@ -4741,77 +4741,46 @@ function Compkiller:_LoadElement(Parent: Frame , EnabledLine: boolean , Signal)
 
 	function Args:AddParagraph(Config: Paragraph) -- request by Neptune
 		Config = Compkiller.__CONFIG(Config, {
-        Title = "Paragraph",
-        Content = "",
-        Image = nil,
-        Model = nil -- Added Model support
-    });
+			Title = "Paragraph",
+			Content = "",
+			Image = nil
+		});
 
-    local Paragraph = Instance.new("Frame")
-    local BlockText = Instance.new("TextLabel")
-    local BlockLine = Instance.new("Frame")
-    local DescriptionText = Instance.new("TextLabel")
-    -- We define these outside the IF so the functions can see them
-    local BlockImage = Instance.new("ImageLabel")
-    local BlockViewport = Instance.new("ViewportFrame") 
+		local Paragraph = Instance.new("Frame")
+		local BlockText = Instance.new("TextLabel")
+		local BlockLine = Instance.new("Frame")
+		local DescriptionText = Instance.new("TextLabel")
+		local BlockImage = Instance.new("ImageLabel")
 
-    if Compkiller:_IsMobile() then
-        Compkiller:_AddDragBlacklist(Paragraph);
-    end;
+		if Compkiller:_IsMobile() then
+			Compkiller:_AddDragBlacklist(Paragraph);
+		end;
 
-    Paragraph.Name = Compkiller:_RandomString()
-    Paragraph.Parent = Parent
-    Paragraph.BackgroundTransparency = 1.000
-    Paragraph.BorderSizePixel = 0
-    Paragraph.Size = UDim2.new(1, -1, 0, 40)
-    Paragraph.ZIndex = Zindex + 2
-    Paragraph.ClipsDescendants = true
+		Paragraph.Name = Compkiller:_RandomString()
+		Paragraph.Parent = Parent
+		Paragraph.BackgroundTransparency = 1.000
+		Paragraph.BorderColor3 = Color3.fromRGB(0, 0, 0)
+		Paragraph.BorderSizePixel = 0
+		Paragraph.Size = UDim2.new(1, -1, 0, 40)
+		Paragraph.ZIndex = Zindex + 2
+		Paragraph.ClipsDescendants = true
 
-    BlockText.Name = Compkiller:_RandomString()
-    BlockText.Parent = Paragraph
-    BlockText.AnchorPoint = Vector2.new(0, 0.5)
-    BlockText.BackgroundTransparency = 1.000
-    BlockText.Position = UDim2.new(0, 12, 0, 12)
-    BlockText.Size = UDim2.new(1, -50, 0, 25) -- Shrink width to make room for VPF
-    BlockText.ZIndex = Zindex + 3
-    BlockText.Font = Enum.Font.GothamMedium
-    BlockText.Text = Config.Title
-    BlockText.TextColor3 = Compkiller.Colors.SwitchColor
-    BlockText.TextSize = 14.000
-    BlockText.TextXAlignment = Enum.TextXAlignment.Left
-    BlockText.RichText = true
-
-    -- Handle Image OR Viewport
-    if Config.Model then
-        BlockViewport.Name = Compkiller:_RandomString()
-        BlockViewport.Parent = Paragraph
-        BlockViewport.AnchorPoint = Vector2.new(1, 0.5)
-        BlockViewport.BackgroundTransparency = 1.000
-        BlockViewport.BorderSizePixel = 0
-        BlockViewport.Position = UDim2.new(1, -12, 0, 20)
-        BlockViewport.Size = UDim2.new(0, 30, 0, 30)
-        BlockViewport.ZIndex = Zindex + 5
-        
-        local WorldModel = Instance.new("WorldModel", BlockViewport)
-        local Camera = Instance.new("Camera", BlockViewport)
-        BlockViewport.CurrentCamera = Camera
-        
-        local Clone = Config.Model:Clone()
-        Clone:PivotTo(CFrame.new(0,0,0))
-        Clone.Parent = WorldModel
-        
-        Camera.CFrame = CFrame.lookAt(Vector3.new(5,5,5), Vector3.new(0,0,0))
-        Instance.new("DirectionalLight", WorldModel)
-    elseif Config.Image then
-        BlockImage.Name = Compkiller:_RandomString()
-        BlockImage.Parent = Paragraph
-        BlockImage.AnchorPoint = Vector2.new(1, 0.5)
-        BlockImage.BackgroundTransparency = 1.000
-        BlockImage.Position = UDim2.new(1, -12, 0, 20)
-        BlockImage.Size = UDim2.new(0, 24, 0, 24)
-        BlockImage.ZIndex = Zindex + 5
-        BlockImage.Image = Config.Image
-    end
+		BlockText.Name = Compkiller:_RandomString()
+		BlockText.Parent = Paragraph
+		BlockText.AnchorPoint = Vector2.new(0, 0.5)
+		BlockText.BackgroundTransparency = 1.000
+		BlockText.BorderColor3 = Color3.fromRGB(0, 0, 0)
+		BlockText.BorderSizePixel = 0
+		BlockText.Position = UDim2.new(0, 12, 0, 12)
+		BlockText.Size = UDim2.new(1, -20, 0, 25)
+		BlockText.ZIndex = Zindex + 3
+		BlockText.Font = Enum.Font.GothamMedium
+		BlockText.Text = Config.Title
+		BlockText.TextColor3 = Compkiller.Colors.SwitchColor
+		BlockText.TextSize = 14.000
+		BlockText.TextTransparency = 0.300
+		BlockText.TextXAlignment = Enum.TextXAlignment.Left
+		BlockText.RichText = true
 
 		table.insert(Compkiller.Elements.SwitchColor , {
 			Element = BlockText,
