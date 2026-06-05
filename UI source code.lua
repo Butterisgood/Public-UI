@@ -180,7 +180,8 @@ export type Helper = {
 
 export type Paragraph = {
 	Title: string,
-	Content: string
+	Content: string,
+	Image: string?
 }
 
 pcall(function()
@@ -4741,13 +4742,15 @@ function Compkiller:_LoadElement(Parent: Frame , EnabledLine: boolean , Signal)
 	function Args:AddParagraph(Config: Paragraph) -- request by Neptune
 		Config = Compkiller.__CONFIG(Config, {
 			Title = "Paragraph",
-			Content = ""
+			Content = "",
+			Image = nil
 		});
 
 		local Paragraph = Instance.new("Frame")
 		local BlockText = Instance.new("TextLabel")
 		local BlockLine = Instance.new("Frame")
 		local DescriptionText = Instance.new("TextLabel")
+		local BlockImage = Instance.new("ImageLabel")
 
 		if Compkiller:_IsMobile() then
 			Compkiller:_AddDragBlacklist(Paragraph);
@@ -4799,6 +4802,20 @@ function Compkiller:_LoadElement(Parent: Frame , EnabledLine: boolean , Signal)
 			Element = BlockLine,
 			Property = "BackgroundColor3"
 		});
+
+		-- Block Image (optional)
+		if Config.Image then
+			BlockImage.Name = Compkiller:_RandomString()
+			BlockImage.Parent = Paragraph
+			BlockImage.AnchorPoint = Vector2.new(1, 0.5)
+			BlockImage.BackgroundTransparency = 1.000
+			BlockImage.BorderSizePixel = 0
+			BlockImage.Position = UDim2.new(1, -12, 0, 12)
+			BlockImage.Size = UDim2.new(0, 24, 0, 24)
+			BlockImage.ZIndex = Zindex + 5
+			BlockImage.ScaleType = Enum.ScaleType.Fit
+			BlockImage.Image = Config.Image
+		end
 
 		DescriptionText.RichText = true
 		DescriptionText.Name = Compkiller:_RandomString()
@@ -4854,6 +4871,17 @@ function Compkiller:_LoadElement(Parent: Frame , EnabledLine: boolean , Signal)
 		function Args:SetContent(content)
 			DescriptionText.Text = content;
 			UpdateScale();
+		end;
+
+		function Args:SetImage(image)
+			if image then
+				if not BlockImage.Parent then
+					BlockImage.Parent = Paragraph
+				end
+				BlockImage.Image = image
+			else
+				BlockImage.Parent = nil
+			end
 		end;
 
 		Args.Signal = Signal:Connect(function(bool)
