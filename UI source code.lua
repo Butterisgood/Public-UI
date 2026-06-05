@@ -4782,36 +4782,30 @@ function Compkiller:_LoadElement(Parent: Frame , EnabledLine: boolean , Signal)
     BlockText.RichText = true
 
     -- Handle Image OR Viewport
-    if Config.Model then
-        BlockViewport.Name = Compkiller:_RandomString()
-        BlockViewport.Parent = Paragraph
-        BlockViewport.AnchorPoint = Vector2.new(1, 0.5)
-        BlockViewport.BackgroundTransparency = 1.000
-        BlockViewport.BorderSizePixel = 0
-        BlockViewport.Position = UDim2.new(1, -12, 0, 20)
-        BlockViewport.Size = UDim2.new(0, 30, 0, 30)
-        BlockViewport.ZIndex = Zindex + 5
-        
-        local WorldModel = Instance.new("WorldModel", BlockViewport)
-        local Camera = Instance.new("Camera", BlockViewport)
-        BlockViewport.CurrentCamera = Camera
-        
-        local Clone = Config.Model:Clone()
-        Clone:PivotTo(CFrame.new(0,0,0))
-        Clone.Parent = WorldModel
-        
-        Camera.CFrame = CFrame.lookAt(Vector3.new(5,5,5), Vector3.new(0,0,0))
-        Instance.new("DirectionalLight", WorldModel)
-    elseif Config.Image then
-        BlockImage.Name = Compkiller:_RandomString()
-        BlockImage.Parent = Paragraph
-        BlockImage.AnchorPoint = Vector2.new(1, 0.5)
-        BlockImage.BackgroundTransparency = 1.000
-        BlockImage.Position = UDim2.new(1, -12, 0, 20)
-        BlockImage.Size = UDim2.new(0, 24, 0, 24)
-        BlockImage.ZIndex = Zindex + 5
-        BlockImage.Image = Config.Image
-    end
+if Config.Model then
+    BlockViewport.Name = Compkiller:_RandomString()
+    BlockViewport.Parent = Paragraph
+    BlockViewport.AnchorPoint = Vector2.new(1, 0.5)
+    BlockViewport.BackgroundTransparency = 1.000
+    BlockViewport.Position = UDim2.new(1, -12, 0, 20)
+    BlockViewport.Size = UDim2.new(0, 30, 0, 30) -- Keep it small
+    BlockViewport.ZIndex = Zindex + 5
+    
+    -- Crucial: This makes the camera/model work
+    local WorldModel = Instance.new("WorldModel", BlockViewport)
+    local Camera = Instance.new("Camera", BlockViewport)
+    BlockViewport.CurrentCamera = Camera
+    
+    local Clone = Config.Model:Clone()
+    Clone:PivotTo(CFrame.new(0,0,0))
+    Clone.Parent = WorldModel
+    
+    Camera.CFrame = CFrame.lookAt(Vector3.new(5,5,5), Vector3.new(0,0,0))
+    Instance.new("DirectionalLight", WorldModel)
+    
+    -- IMPORTANT: Increase the paragraph padding so it doesn't get cut off
+    Paragraph.Size = UDim2.new(1, -1, 0, 50) 
+end
 
 		table.insert(Compkiller.Elements.SwitchColor , {
 			Element = BlockText,
